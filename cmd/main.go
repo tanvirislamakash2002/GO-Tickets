@@ -2,6 +2,7 @@ package main
 
 import (
 	"net/http"
+	"os/user"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -9,13 +10,6 @@ import (
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
-
-type User struct {
-	gorm.Model
-	Name     string `json:"name" validate:"required" gorm:"type:varchar(100);not null"`
-	Email    string `json:"email" validate:"required,email" gorm:"type:varchar(255);uniqueIndex;not null"`
-	Password string `json:"password" validate:"required,min=6" gorm:"type:varchar(100);not null"`
-}
 
 type CustomValidator struct {
 	validator *validator.Validate
@@ -38,7 +32,7 @@ func main() {
 	}
 
 	// Auto migrate after successful connection
-	if err := db.AutoMigrate(&User{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}); err != nil {
 		panic("failed to migrate database: " + err.Error())
 	}
 	println("Database connected successfully")
@@ -52,7 +46,7 @@ func main() {
 	})
 
 	e.POST("/users", func(c *echo.Context) error {
-		newUser := new(User)
+		newUser := new(user.User)
 
 		if err := c.Bind(newUser); err != nil {
 			return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
