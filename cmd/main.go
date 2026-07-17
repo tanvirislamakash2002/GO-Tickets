@@ -1,8 +1,8 @@
 package main
 
 import (
+	"gotickets/internal/user"
 	"net/http"
-	"os/user"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/labstack/echo/v5"
@@ -45,24 +45,11 @@ func main() {
 		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
 	})
 
-	e.POST("/users", func(c *echo.Context) error {
-		newUser := new(user.User)
+	userRepository := user.NewRepository(db)
+	userService := user.NewService(userRepository)
+	userHandler := user.NewHandler(userService)
 
-		if err := c.Bind(newUser); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
-		}
-
-		if err := c.Validate(newUser); err != nil {
-			return c.JSON(http.StatusBadRequest, map[string]any{"error": err.Error()})
-		}
-
-		result := db.Create(newUser)
-		if result.Error != nil {
-			return c.JSON(http.StatusInternalServerError, map[string]any{"error": result.Error.Error()})
-		}
-
-		return c.JSON(http.StatusCreated, newUser)
-	})
+	e.POST("/users", userHandler.CreateUser)
 
 	if err := e.Start(":8080"); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
