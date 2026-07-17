@@ -1,6 +1,11 @@
 package user
 
-import "gotickets/internal/user/dto"
+import (
+	"fmt"
+	"gotickets/internal/user/dto"
+)
+
+var ErrInvalidCredentials = fmt.Errorf("Invalid email or password")
 
 type service struct {
 	repo Repository
@@ -23,6 +28,36 @@ func (s *service) CreateUser(req dto.CreateRequest) (*dto.Response, error) {
 
 	if err != nil {
 		return nil, err
+	}
+
+	err = s.repo.CreateUser(&user)
+	if err != nil {
+		return nil, err
+	}
+	response := dto.Response{
+		ID:        user.ID,
+		Name:      user.Name,
+		Email:     user.Email,
+		CreatedAt: user.CreatedAt.String(),
+	}
+	return &response, nil
+}
+
+func (s *service) LoginUser(req dto.LoginRequest) (*dto.Response, error) {
+	user, err := s.repo.GetUserByEmail(req.Email)
+	if err != nil {
+		return nil, err
+	}
+
+	if user == nil {
+		return nil, ErrInvalidCredentials
+	}
+
+	// check password
+	err = user.checkPassword(req.Password)
+
+	if err != nil {
+		return nil, ErrInvalidCredentials
 	}
 
 	response := dto.Response{
