@@ -1,0 +1,50 @@
+package server
+
+import (
+	"fmt"
+	"gotickets/internal/config"
+	"gotickets/internal/user"
+	"net/http"
+
+	"github.com/go-playground/validator/v10"
+	"github.com/labstack/echo/v5"
+	"github.com/labstack/echo/v5/middleware"
+	"gorm.io/gorm"
+)
+
+type CustomValidator struct {
+	validator *validator.Validate
+}
+
+func (cv *CustomValidator) Validate(i any) error {
+	if err := cv.validator.Struct(i); err != nil {
+		return echo.ErrBadRequest.Wrap(err)
+	}
+	return nil
+}
+
+func Start(db *gorm.DB, cfg *config.Config) {
+	// Auto migrate after successful connection
+	if err := db.AutoMigrate(&user.User{}); err != nil {
+		panic("failed to migrate database: " + err.Error())
+	}
+	println("Database connected successfully")
+
+	e := echo.New()
+	e.Validator = &CustomValidator{validator: validator.New()}
+
+	e.Use(middleware.RequestLogger())
+
+	e.GET("/", func(c *echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
+	})
+
+	// user route registration
+	user.RegisterRoutes(e, db)
+
+	port := fmt.Sprintf(":%s", cfg.Port)
+
+	if err := e.Start(port); err != nil {
+		e.Logger.Error("failed to start server", "error", err)
+	}
+}

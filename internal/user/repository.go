@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-var ErrorAlready = errors.New("user with this email already exist")
+var ErrorAlreadyExist = errors.New("user with this email already exist")
 
 type Repository interface {
 	CreateUser(user *User) error
@@ -27,7 +27,7 @@ func (r repository) CreateUser(user *User) error {
 	if result.Error != nil {
 
 		if errors.Is(result.Error, gorm.ErrDuplicatedKey) {
-			return ErrorAlready
+			return ErrorAlreadyExist
 		}
 		return result.Error
 	}
