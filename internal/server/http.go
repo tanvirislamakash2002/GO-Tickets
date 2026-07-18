@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"gotickets/internal/config"
+	"gotickets/internal/event"
 	"gotickets/internal/user"
 	"net/http"
 
@@ -25,7 +26,7 @@ func (cv *CustomValidator) Validate(i any) error {
 
 func Start(db *gorm.DB, cfg *config.Config) {
 	// Auto migrate after successful connection
-	if err := db.AutoMigrate(&user.User{}); err != nil {
+	if err := db.AutoMigrate(&user.User{}, &event.Event{}); err != nil {
 		panic("failed to migrate database: " + err.Error())
 	}
 	println("Database connected successfully")
@@ -41,6 +42,7 @@ func Start(db *gorm.DB, cfg *config.Config) {
 
 	// user route registration
 	user.RegisterRoutes(e, db)
+	event.RegisterRoutes(e, db)
 
 	port := fmt.Sprintf(":%s", cfg.Port)
 
