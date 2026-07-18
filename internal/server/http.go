@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 	"gotickets/internal/config"
-	"gotickets/internal/event"
-	"gotickets/internal/user"
+	"gotickets/internal/domain/event"
+	"gotickets/internal/domain/user"
 	"net/http"
 
 	"github.com/go-playground/validator/v10"
