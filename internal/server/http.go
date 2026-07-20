@@ -3,6 +3,7 @@ package server
 import (
 	"fmt"
 	"gotickets/internal/config"
+	"gotickets/internal/domain/booking"
 	"gotickets/internal/domain/event"
 	"gotickets/internal/domain/user"
 	"net/http"
@@ -19,33 +20,29 @@ type CustomValidator struct {
 
 func (cv *CustomValidator) Validate(i any) error {
 	if err := cv.validator.Struct(i); err != nil {
+		// Optionally, you could return the error to give each route more control over the status code
 		return echo.ErrBadRequest.Wrap(err)
 	}
 	return nil
 }
 
 func Start(db *gorm.DB, cfg *config.Config) {
-	// Auto migrate after successful connection
-	if err := db.AutoMigrate(&user.User{}, &event.Event{}); err != nil {
-		panic("failed to migrate database: " + err.Error())
-	}
-	println("Database connected successfully")
+	db.AutoMigrate(&user.User{}, &event.Event{}, &booking.Booking{})
 
 	e := echo.New()
 	e.Validator = &CustomValidator{validator: validator.New()}
-
 	e.Use(middleware.RequestLogger())
 
-	e.GET("/", func(c *echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"message": "Hello, World!"})
+	e.GET("/health", func(c *echo.Context) error {
+		return c.String(http.StatusOK, "running")
 	})
 
-	// user route registration
-	user.RegisterRoutes(e, db)
+	//routes
+	user.RegisterRoutes(e, db, cfg)
 	event.RegisterRoutes(e, db)
+	booking.RegisterRoutes(e, db, cfg)
 
 	port := fmt.Sprintf(":%s", cfg.Port)
-
 	if err := e.Start(port); err != nil {
 		e.Logger.Error("failed to start server", "error", err)
 	}
